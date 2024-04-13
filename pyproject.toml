@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "telegram-ai-agents"
+version = "0.1.0"
+description = ""
+authors = ["Navicstein <navicsteinrotciv@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.8.1,<4.0"
+python-telegram-bot = "^21.1"
+langchain-community = "^0.0.32"
+pydantic = "^2.7.0"
+langchain = "^0.1.16"
+litellm = "^1.35.4"
+python-dotenv = "^1.0.1"
+sqlmodel = "^0.0.16"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

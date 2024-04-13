@@ -1,0 +1,9 @@
+{
+    "python.analysis.autoFormatStrings": true,
+    "python.analysis.completeFunctionParens": true,
+    "python.analysis.extraCommitChars": true,
+    "python.analysis.inlayHints.callArgumentNames": "all",
+    "python.analysis.inlayHints.functionReturnTypes": true,
+    "python.analysis.typeCheckingMode": "standard",
+    "python.analysis.inlayHints.pytestParameters": true
+}
