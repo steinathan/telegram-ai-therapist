@@ -1,4 +1,9 @@
+import os
+
+from dotenv import load_dotenv
+from app.db import chat_crud, user_crud
 from app.logging import logger
+
 from typing_extensions import cast
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
@@ -6,14 +11,10 @@ from langchain_community.chat_models.litellm import ChatLiteLLM
 from langchain_core.messages import HumanMessage, AIMessage, BaseMessage, SystemMessage
 from langchain_core.prompts import PromptTemplate
 
-from app.models import User
+from app.db.models import Chat, User
 
-chat_llm = ChatLiteLLM(
-    client=None,
-    streaming=False,
-    verbose=True,
-    callback_manager=CallbackManager([StreamingStdOutCallbackHandler()]),
-)
+load_dotenv()
+
 
 prompt_instruction = """ 
 You are Vikky, a therapist who specializes in treating patients with mental illness or assisting with their mental health.
@@ -24,44 +25,63 @@ Your ultimate goal is to improve their mental well-being, and lead fulfilling li
 You are speaking with {full_name}
 """
 
-# TODO: get from DB
-chat_history: dict[str, list[BaseMessage]] = {}
-
 
 class CompletionChat:
+    def __init__(self) -> None:
+        self.chat_client = ChatLiteLLM(
+            client=None,
+            streaming=False,
+            verbose=True,
+            api_base=os.getenv("LITELLM_API_BASE", None),
+            model=os.getenv("LITELLM_MODEL", "gpt-3.5-turbo"),
+            callback_manager=CallbackManager([StreamingStdOutCallbackHandler()]),
+        )
+
     def forward(self, message: str, user: User) -> str:
         self.user = user
 
-        if chat_history.get(str(user.id)) is None:
-            logger.info(f"creating new chat DB for {user.full_name}")
-            chat_history[str(user.id)] = [
-                SystemMessage(
-                    content=PromptTemplate.from_template(prompt_instruction).format(
-                        full_name=user.full_name
-                    )
-                ),
-            ]
+        self.__create_chat_message(user_id=self.user.id, message=message, role="human")
 
-        self.__append_chat_history(user_id=self.user.id, message=message, role="human")
-
-        response = chat_llm(
-            messages=self.__get_chat_history_by_id(self.user.id),
+        response = self.chat_client(
+            messages=self.__get_chat_messages(),
         )
 
         ai_message: str = cast(str, response.content)
-        self.__append_chat_history(user_id=self.user.id, message=ai_message, role="ai")
+        self.__create_chat_message(user_id=self.user.id, message=ai_message, role="ai")
         return ai_message
 
     # TODO: use ConversationBufferMemory
     # https://python.langchain.com/docs/modules/memory/types/buffer/
-    def __append_chat_history(
+    def __create_chat_message(
         self, user_id: str | int, message: str, role: str
     ) -> None:
-        chat_history[str(self.user.id)].append(
-            HumanMessage(content=message)
-            if role == "human"
-            else AIMessage(content=message)
-        )
+        chat_crud.create(Chat(role=role, text=message, user_id=int(user_id)))
 
-    def __get_chat_history_by_id(self, user_id: str | int) -> list[BaseMessage]:
-        return chat_history[str(user_id)]
+    def __get_chat_messages(self) -> list[BaseMessage]:
+        history: list[BaseMessage] = []
+
+        user_chat_histories = chat_crud.get_all(Chat.user_id == self.user.id)
+
+        for chat_history in user_chat_histories:
+            if chat_history.role == "human":
+                history.append(HumanMessage(content=chat_history.text))
+            elif chat_history.role == "ai":
+                history.append(AIMessage(content=chat_history.text))
+
+        # ok, you caught me - my intention here is to only pick out the last 5 messages so as to reduce the chat messages to a manageable size
+        # users can have 100's of messages
+        # TODO: use a vectorDB and filter only by context
+        if len(history) > 5:
+            # add the systems prompt
+            history = history[-5:]
+
+        # always adding the system message as first instruction
+        history.insert(
+            0,
+            SystemMessage(
+                content=PromptTemplate.from_template(prompt_instruction).format(
+                    full_name=self.user.full_name
+                )
+            ),
+        )
+        return history

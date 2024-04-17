@@ -14,6 +14,7 @@ Press Ctrl-C on the command line or send a signal to the process to stop the
 bot.
 """
 
+import os
 from app.gpt.chat import CompletionChat
 from app.logging import logger
 import logging
@@ -28,7 +29,7 @@ from telegram.ext import (
     filters,
 )
 
-from app.models import User
+from app.db import User, user_crud
 
 chat = CompletionChat()
 
@@ -69,9 +70,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if not user_text:
         return
 
-    response = chat.forward(
-        message=user_text, user=User(**update.effective_user.to_dict())
-    )
+    user = user_crud.get(update.effective_user.id)
+    if not user:
+        user = user_crud.create(
+            User(
+                id=update.effective_user.id,
+                full_name=update.effective_user.full_name,
+                telegram_id=update.effective_user.id,
+            )
+        )
+
+    response = chat.forward(message=user_text, user=user)
 
     await update.message.reply_text(text=response)
 
@@ -92,9 +101,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 def telegram_app() -> None:
     """Run the bot."""
     application = (
-        Application.builder()
-        .token("6514199198:AAFoggRB8Kzn7Pwl2Yu2WSB17E9u1VLa8ew")
-        .build()
+        Application.builder().token(os.getenv("TELEGRAM_BOT_TOKEN", "")).build()
     )
 
     application.add_handler(handler=CommandHandler(command="start", callback=start))
