@@ -27,11 +27,11 @@ from app.db import User, user_crud
 start_message = """
 🧠 Introducing the first AI health & mental coach, available 24/7.
 
-✅ Reframe negative thoughts
-✅ Take actionable steps to overcome challenges
-✅ Emphasize physical fitness for mental well-being
-✅ Provide support throughout your day
-✅ Offer encouragement to uplift your mood
+🔄 Reframe negative thoughts
+🚀 Take actionable steps to overcome challenges
+💪 Emphasize physical fitness for mental well-being
+🤝 Provide support throughout your day
+🌟 Offer encouragement to uplift your mood
 
 You can:
 🎤 Send voice messages for responses in audio
@@ -39,7 +39,7 @@ You can:
 
 
 💡 Feedback:
-Have suggestions, ideas, or encountered bugs? Share them with us at https://linkedin.com/in/navicstein.
+Have suggestions, ideas, or encountered bugs? Share them with me at https://linkedin.com/in/navicstein.
 """
 
 upgrade_message = f"""You've reached your limit of messages. To continue our conversation, please select "Purchase" below.
