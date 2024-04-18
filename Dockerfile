@@ -13,6 +13,7 @@ COPY . .
 
 RUN ls -1a ./app
 RUN poetry install --no-root --no-interaction
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg 
 
 EXPOSE 1337
 
