@@ -2,6 +2,7 @@ import os
 
 from dotenv import load_dotenv
 from app.db import chat_crud, user_crud
+from app.exceptions import UpgradeRequiredException
 from app.logging import logger
 
 from typing_extensions import cast
@@ -40,6 +41,9 @@ class CompletionChat:
     def forward(self, message: str, user: User) -> str:
         self.user = user
 
+        if not self.can_forward:
+            raise UpgradeRequiredException("Can't forward, upgrade is required")
+
         self.__create_chat_message(user_id=self.user.id, message=message, role="human")
 
         response = self.chat_client(
@@ -49,6 +53,12 @@ class CompletionChat:
         ai_message: str = cast(str, response.content)
         self.__create_chat_message(user_id=self.user.id, message=ai_message, role="ai")
         return ai_message
+
+    @property
+    def can_forward(self) -> bool:
+        """Check if user can send a chat message"""
+        all_msg = chat_crud.get_all(Chat.user_id == self.user.id)
+        return len(all_msg) < 5 or self.user.is_premium
 
     # TODO: use ConversationBufferMemory
     # https://python.langchain.com/docs/modules/memory/types/buffer/

@@ -15,11 +15,17 @@ bot.
 """
 
 import os
+from app.exceptions import UpgradeRequiredException
 from app.gpt.chat import CompletionChat
 from app.logging import logger
-import logging
 
-from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
+from telegram import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
+    Update,
+)
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -33,23 +39,73 @@ from app.db import User, user_crud
 
 chat = CompletionChat()
 
+start_message = """
+🧠 Introducing the first AI mental health coach, available 24/7.
+
+✅ Reframe negative thoughts
+✅ Take actionable steps to overcome challenges
+✅ Emphasize physical fitness for mental well-being
+✅ Provide support throughout your day
+✅ Offer encouragement to uplift your mood
+
+You can:
+🎤 Send voice messages for responses in audio
+💬 Send chat messages for text responses
+📸 Share photos for analysis
+🔎 Send web URLs for summarization
+
+
+💡 Feedback:
+Have suggestions, ideas, or encountered bugs? Share them with us at https://linkedin.com/in/navicstein.
+"""
+
+upgrade_message = f"""To continue our conversation, please select "Continue talking" below.
+
+{start_message}
+"""
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Starts the conversation and asks the user about their gender."""
+    """Starts the conversation and asks you about your email to get started."""
     assert update.message is not None
 
-    reply_keyboard = [["Boy", "Girl", "Other"]]
-
+    # TODO: ask the user about thier email address
     await update.message.reply_text(
-        "Hi! My name is Professor Bot. I will hold a conversation with you. "
-        "Send /cancel to stop talking to me.\n\n"
-        "Are you a boy or a girl?",
-        reply_markup=ReplyKeyboardMarkup(
-            reply_keyboard,
-            one_time_keyboard=True,
-            input_field_placeholder="Boy or Girl?",
-        ),
+        start_message,
     )
+
+
+async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Resets the conversation, deleting the previous user's messages."""
+    assert update.message is not None
+
+    # TODO: implement this
+    await update.message.reply_text(
+        "I've deleted your messages in my histoy, you may as well clear the history from telegram itself.",
+    )
+
+
+async def billing(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Download all your invoices."""
+    assert update.message is not None
+
+    # TODO: implement this
+
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "⏬ Download invoices",
+                url="https://linkedin.com/in/navicstein",
+            ),
+            InlineKeyboardButton(
+                "🚫 Cancel Subscription",
+                url="https://linkedin.com/in/navicstein",
+            ),
+        ],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await update.message.reply_text("Choose an option:", reply_markup=reply_markup)
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -80,9 +136,26 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             )
         )
 
-    response = chat.forward(message=user_text, user=user)
-
-    await update.message.reply_text(text=response)
+    try:
+        response = chat.forward(message=user_text, user=user)
+        await update.message.reply_text(text=response)
+    except UpgradeRequiredException:
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    # TODO: add payment link
+                    "🔥Continue Talking",
+                    url="https://linkedin.com/in/navicstein",
+                )
+            ],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(text=upgrade_message, reply_markup=reply_markup)
+    except Exception as e:
+        logger.exception(e, exc_info=True)
+        await update.message.reply_text(
+            text="I'm sorry, I could'nt process your last message, can you resend it?"
+        )
 
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -105,6 +178,8 @@ def telegram_app() -> None:
     )
 
     application.add_handler(handler=CommandHandler(command="start", callback=start))
+    application.add_handler(handler=CommandHandler(command="reset", callback=reset))
+    application.add_handler(handler=CommandHandler(command="billing", callback=billing))
     application.add_handler(
         handler=MessageHandler(filters=filters.ALL, callback=handle_message)
     )

@@ -10,12 +10,17 @@ class User(SQLModel, table=True):
     full_name: str
     telegram_id: int
 
+    is_premium: bool = Field(default=False)
+
     created_at: datetime.datetime | None = Field(
         default_factory=datetime.datetime.utcnow,
     )
     updated_at: datetime.datetime | None = Field(
         default_factory=datetime.datetime.utcnow,
         sa_column=Column(DateTime(), onupdate=func.now()),
+    )
+    last_seen_at: datetime.datetime | None = Field(
+        default_factory=datetime.datetime.utcnow,
     )
 
 
