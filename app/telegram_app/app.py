@@ -1,22 +1,7 @@
 #!/usr/bin/env python
 # pylint: disable=unused-argument
-# This program is dedicated to the public domain under the CC0 license.
-
-"""
-First, a few callback functions are defined. Then, those functions are passed to
-the Application and registered at their respective places.
-Then, the bot is started and runs until we press Ctrl-C on the command line.
-
-Usage:
-Example of a bot-user conversation using ConversationHandler.
-Send /start to initiate the conversation.
-Press Ctrl-C on the command line or send a signal to the process to stop the
-bot.
-"""
 
 import os
-import tempfile
-import uuid
 from app.exceptions import UpgradeRequiredException
 from app.gpt.chat import CompletionChat, MsgType
 from app.logging import logger
@@ -24,7 +9,6 @@ from app.logging import logger
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
-    ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
     Update,
 )
@@ -41,7 +25,7 @@ from app.db import User, user_crud
 
 
 start_message = """
-🧠 Introducing the first AI mental health coach, available 24/7.
+🧠 Introducing the first AI health & mental coach, available 24/7.
 
 ✅ Reframe negative thoughts
 ✅ Take actionable steps to overcome challenges
@@ -52,15 +36,13 @@ start_message = """
 You can:
 🎤 Send voice messages for responses in audio
 💬 Send chat messages for text responses
-📸 Share photos for analysis
-🔎 Send web URLs for summarization
 
 
 💡 Feedback:
 Have suggestions, ideas, or encountered bugs? Share them with us at https://linkedin.com/in/navicstein.
 """
 
-upgrade_message = f"""To continue our conversation, please select "Continue talking" below.
+upgrade_message = f"""You've reached your limit of messages. To continue our conversation, please select "Purchase" below.
 
 {start_message}
 """
@@ -117,6 +99,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     assert update.effective_user is not None
 
     if update.message.audio:
+        await update.message.reply_text(
+            text="You need to send me a voice note and not an audio file."
+        )
         return
 
     data = update.message.text
@@ -156,8 +141,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             [
                 InlineKeyboardButton(
                     # TODO: add payment link
-                    "🔥Continue Talking",
-                    url="https://linkedin.com/in/navicstein",
+                    "🔥Purchase",
+                    url="https://paystack.com/pay/gvasuwrv-l",
                 )
             ],
         ]

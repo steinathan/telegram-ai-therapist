@@ -1,0 +1,21 @@
+# fly.toml app configuration file generated for telegram-ai-agents on 2024-04-18T03:33:07+01:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'telegram-ai-agents'
+primary_region = 'jnb'
+
+[env]
+PORT = '1337'
+
+[http_service]
+internal_port = 1337
+force_https = true
+auto_stop_machines = true
+auto_start_machines = true
+min_machines_running = 0
+processes = ['app']
+
+[[vm]]
+size = 'shared-cpu-1x'
