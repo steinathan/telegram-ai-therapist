@@ -16,6 +16,7 @@ python-dotenv = "^1.0.1"
 sqlmodel = "^0.0.16"
 openai = "^1.21.2"
 pydub = "^0.25.1"
+asyncpg = "^0.29.0"
 
 
 [build-system]
