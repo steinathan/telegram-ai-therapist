@@ -15,8 +15,10 @@ bot.
 """
 
 import os
+import tempfile
+import uuid
 from app.exceptions import UpgradeRequiredException
-from app.gpt.chat import CompletionChat
+from app.gpt.chat import CompletionChat, MsgType
 from app.logging import logger
 
 from telegram import (
@@ -37,7 +39,6 @@ from telegram.ext import (
 
 from app.db import User, user_crud
 
-chat = CompletionChat()
 
 start_message = """
 🧠 Introducing the first AI mental health coach, available 24/7.
@@ -115,30 +116,41 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     assert update.effective_user is not None
 
-    # TODO: implement this
-    if update.message.audio or update.message.voice:
-        await update.message.reply_text(
-            text="Sorry, i can't listen to audio notes at the moment"
-        )
+    if update.message.audio:
         return
 
-    user_text = update.message.text
-    if not user_text:
-        return
-
-    user = user_crud.get(update.effective_user.id)
-    if not user:
-        user = user_crud.create(
-            User(
-                id=update.effective_user.id,
-                full_name=update.effective_user.full_name,
-                telegram_id=update.effective_user.id,
-            )
-        )
+    data = update.message.text
+    msg_type: MsgType = "text"
 
     try:
-        response = chat.forward(message=user_text, user=user)
-        await update.message.reply_text(text=response)
+        user = user_crud.get(update.effective_user.id)
+        if not user:
+            user = user_crud.create(
+                User(
+                    id=update.effective_user.id,
+                    full_name=update.effective_user.full_name,
+                    telegram_id=update.effective_user.id,
+                )
+            )
+
+        chat = CompletionChat(user=user)
+
+        if update.message.voice:
+            msg_type = "voice"
+            data = await update.message.voice.get_file()
+
+        if not data:
+            return
+
+        response = await chat.forward(data, msg_type=msg_type)
+
+        if isinstance(response, bytes):
+            await update.message.reply_voice(voice=response)
+        elif isinstance(response, str):
+            await update.message.reply_text(text=response)
+        else:
+            raise Exception(f"Unexpected AI response type: {type(response)}")
+
     except UpgradeRequiredException:
         keyboard = [
             [
