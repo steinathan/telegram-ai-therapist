@@ -5,7 +5,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from dotenv import load_dotenv
-from app.telegram_app.app import telegram_app
+from app.telegram_app.app import TelegramAgentApp
 
 
 load_dotenv()
@@ -18,10 +18,15 @@ def read_root():
     return {"Hello": "World"}
 
 
-def main():
+def run_server():
     uvicorn.run(app, host="0.0.0.0", port=1337)
 
 
+def run_telegram_agent():
+    app = TelegramAgentApp()
+    app.run_until_complete()
+
+
 if __name__ == "__main__":
-    threading.Thread(target=main, daemon=True).start()
-    telegram_app()
+    threading.Thread(target=run_server, daemon=True).start()
+    run_telegram_agent()
