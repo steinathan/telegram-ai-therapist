@@ -28,8 +28,8 @@ from telegram.ext import (
 )
 
 from app.db import User, chat_crud, user_crud
-from app.telegram_app.schedule_handler import greet_everyone
-
+from app.telegram_app.schedule_handler import greetings_job
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 
 start_message = """
 🧠 Introducing the first AI health & mental coach, available 24/7.
@@ -128,42 +128,45 @@ class TelegramAgentApp:
         await update.message.reply_text("Choose an option:", reply_markup=reply_markup)
 
     async def handle_cron(self):
-        # async def send_msg(chat_id: int):
-        #     print(f"⏳ Sending message to {chat_id}..")
-        #     text = """
-        # 🌙 Time to wind down and take care of yourself before bed! Here's a simple tip to promote a restful night's sleep:
-
-        # 💤 Unplug and Relax: Power down your electronic devices at least an hour before bedtime.
-
-        # The blue light emitted from screens can disrupt your sleep cycle. Instead, try reading a book, practicing gentle yoga, or listening to calming music to help your mind and body unwind.
-
-        # Remember, quality sleep is essential for overall health and well-being.
-        # """
-
-        #     chat_id = int(chat_id)
-        #     await self.bot.send_message(chat_id=chat_id, text=text)
-        #     await asyncio.sleep(5)
-        #     await self.bot.send_message(
-        #         chat_id=chat_id,
-        #         text="Here's a picture of a cat dressed like batman, ready to save the night!",
-        #     )
-        #     await asyncio.sleep(5)
-        #     await self.bot.send_photo(
-        #         chat_id=chat_id,
-        #         photo=open("cat.png", "rb"),
-        #     )
-        #     await self.bot.send_message(
-        #         chat_id=chat_id,
-        #         text="Goodnight, Sleep tight! You've got this! 💪",
-        #     )
-        #     print(f"✅ Sent message to {chat_id}!")
-        # def __wrap(bot):
-        # asyncio.ensure_future(greet_everyone(bot))
-
+        # jobstores = {
+        #     "default": SQLAlchemyJobStore(url="sqlite:///jobs.sqlite"),
+        # }
         scheduler = AsyncIOScheduler()
+        # scheduler.configure(jobstores=jobstores)
+        # scheduler.remove_all_jobs()
+
         scheduler.add_job(
-            greet_everyone, trigger="interval", seconds=3, args=(self.bot,)
+            greetings_job,
+            name="morning_greeting",
+            id="morning_greeting",
+            trigger="cron",
+            hour=6,
         )
+
+        scheduler.add_job(
+            greetings_job,
+            name="afternoon_greeting",
+            id="afternoon_greeting",
+            trigger="cron",
+            hour=12,
+        )
+
+        scheduler.add_job(
+            greetings_job,
+            name="evening_greeting",
+            id="evening_greeting",
+            trigger="cron",
+            hour=18,
+        )
+
+        scheduler.add_job(
+            greetings_job,
+            name="night_greeting",
+            id="night_greeting",
+            trigger="cron",
+            hour=21,
+        )
+
         scheduler.start()
 
     async def handle_message(

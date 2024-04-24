@@ -1,25 +1,16 @@
-import os
 import uuid
 
-from dotenv import load_dotenv
-from openai import OpenAI
-from telegram import File
-from app.db import chat_crud
-from app.exceptions import UpgradeRequiredException
-from app.logging import logger
-from pydub import AudioSegment
-
-from typing_extensions import Literal, cast
-from langchain.callbacks.manager import CallbackManager
-from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
-from langchain_community.chat_models.litellm import ChatLiteLLM
-from langchain_core.messages import HumanMessage, AIMessage, BaseMessage, SystemMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langchain_core.prompts import PromptTemplate
+from pydub import AudioSegment
+from telegram import File
+from typing_extensions import Literal, cast
 
+from app.db import chat_crud
 from app.db.models import Chat, User
-
-load_dotenv()
-
+from app.exceptions import UpgradeRequiredException
+from app.gpt.llm import chat_client, openai_client
+from app.logging import logger
 
 prompt_instruction = """ 
 You are Vikky, a therapist who specializes in treating patients with mental illness or assisting with their mental health.
@@ -38,15 +29,8 @@ MsgType = Literal["text", "voice", "picture"]
 class CompletionChat:
     def __init__(self, user: User) -> None:
         self.user = user
-        self.openai_client = OpenAI()
-        self.chat_client = ChatLiteLLM(
-            client=self.openai_client,
-            streaming=False,
-            verbose=True,
-            api_base=os.getenv("LITELLM_API_BASE", None),
-            model=os.getenv("LITELLM_MODEL", "gpt-3.5-turbo"),
-            callback_manager=CallbackManager([StreamingStdOutCallbackHandler()]),
-        )
+        self.openai_client = openai_client
+        self.chat_client = chat_client
 
     async def forward(
         self, message_like_file: str | File, msg_type: MsgType
