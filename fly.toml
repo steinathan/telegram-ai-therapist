@@ -19,3 +19,5 @@ processes = ['app']
 
 [[vm]]
 size = 'shared-cpu-1x'
+machines = 1
+memory = '1GB'

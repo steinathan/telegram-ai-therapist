@@ -5,6 +5,7 @@ import asyncio
 import os
 import random
 import time
+
 from app.exceptions import UpgradeRequiredException
 from app.gpt.chat import CompletionChat, MsgType
 from app.logging import logger
@@ -16,6 +17,7 @@ from telegram import (
     ReplyKeyboardRemove,
     Update,
 )
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -26,6 +28,7 @@ from telegram.ext import (
 )
 
 from app.db import User, chat_crud, user_crud
+from app.telegram_app.schedule_handler import greet_everyone
 
 
 start_message = """
@@ -154,8 +157,14 @@ class TelegramAgentApp:
         #         text="Goodnight, Sleep tight! You've got this! 💪",
         #     )
         #     print(f"✅ Sent message to {chat_id}!")
+        # def __wrap(bot):
+        # asyncio.ensure_future(greet_everyone(bot))
 
-        pass
+        scheduler = AsyncIOScheduler()
+        scheduler.add_job(
+            greet_everyone, trigger="interval", seconds=3, args=(self.bot,)
+        )
+        scheduler.start()
 
     async def handle_message(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -237,4 +246,6 @@ class TelegramAgentApp:
 
     def run_until_complete(self):
         asyncio.ensure_future(self.handle_cron())
+
+        logger.info("Starting bot..")
         self.application.run_polling(allowed_updates=Update.ALL_TYPES)

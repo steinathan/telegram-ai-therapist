@@ -34,7 +34,7 @@ class User(SQLModel, table=True):
 class Chat(SQLModel, table=True):
     __tablename__ = "chats"  # type: ignore
     id: int = Field(
-        default=None, sa_column=Column(Numeric(), primary_key=True, autoincrement=True)
+        default=None, sa_column=Column(Numeric, primary_key=True, autoincrement=True)
     )
     user_id: int = Field(default=None, sa_column=Column(Numeric(), primary_key=True))
     role: str
